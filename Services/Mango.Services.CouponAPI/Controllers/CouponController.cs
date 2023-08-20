@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Mango.Services.CouponAPI.Data;
 using Mango.Services.CouponAPI.Models;
+using AutoMapper;
+using Mango.Services.CouponAPI.Models.Dto;
 
 namespace Mango.Services.CouponAPI.Controllers
 {
@@ -9,71 +11,113 @@ namespace Mango.Services.CouponAPI.Controllers
     [ApiController]
     public class CouponController : ControllerBase
     {
+        private readonly IMapper _mapper;
         private readonly AppDbContext _context;
+        private ResponseDto _response;
 
-        public CouponController(AppDbContext context)
+        public CouponController(AppDbContext context, IMapper mapper)
         {
+            _mapper = mapper;
             _context = context;
+            _response = new ResponseDto();
         }
 
         // GET: api/Coupon
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Coupon>>> GetCoupons()
+        public async Task<ActionResult<ResponseDto>> GetCoupons()
         {
-            if (_context.Coupons == null)
+            try
             {
-                return NotFound();
+                if (_context.Coupons == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Not Found";
+                    return NotFound(_response);
+                }
+
             }
-            return await _context.Coupons.ToListAsync();
+            catch (Exception ex)
+            {
+
+                _response.IsSuccess = false;
+                _response.Message = ex.Message;
+                return BadRequest(_response);
+            }
+
+            _response.Result = _mapper.Map<IEnumerable<CouponDto>>(await _context.Coupons.ToListAsync());
+
+            return Ok(_response);
+
         }
 
         // GET: api/Coupon/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Coupon>> GetCoupon(int id)
+        public async Task<ActionResult<ResponseDto>> GetCoupon(int id)
         {
-            if (_context.Coupons == null)
+            try
             {
-                return NotFound();
-            }
-            var coupon = await _context.Coupons.FindAsync(id);
+                if (_context.Coupons == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Table Not Found";
+                    return NotFound(_response);
+                }
+                var coupon = _mapper.Map<CouponDto>(await _context.Coupons.FindAsync(id));
 
-            if (coupon == null)
+                if (coupon == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Coupon Not Found";
+                    return NotFound(_response);
+                }
+                _response.Result = coupon;
+            }
+            catch (Exception ex)
             {
-                return NotFound();
+                _response.IsSuccess = false;
+                _response.Message = ex.Message;
+                return BadRequest(_response);
             }
 
-            return coupon;
+            return Ok(_response);
         }
 
         // PUT: api/Coupon/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCoupon(int id, Coupon coupon)
+        public async Task<ActionResult<ResponseDto>> PutCoupon(int id, Coupon coupon)
         {
             if (id != coupon.CouponId)
             {
-                return BadRequest();
+                _response.IsSuccess = false;
+                _response.Message = "Id mismatch";
+                return _response;
             }
 
             _context.Entry(coupon).State = EntityState.Modified;
 
             try
             {
+                _response.Result = coupon;
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException ex)
             {
                 if (!CouponExists(id))
                 {
-                    return NotFound();
+                    _response.IsSuccess = false;
+                    _response.Message = "Id dont belong to any coupon";
+                    return _response;
                 }
                 else
                 {
-                    throw;
+                    _response.IsSuccess = false;
+                    _response.Message = ex.Message;
+                    return _response;
                 }
             }
 
-            return NoContent();
+            return Ok(_response);
         }
 
         // POST: api/Coupon
@@ -82,36 +126,71 @@ namespace Mango.Services.CouponAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Coupon>> PostCoupon(Coupon coupon)
+        public async Task<ActionResult<ResponseDto>> PostCoupon(Coupon coupon)
         {
-            if (_context.Coupons == null)
+            try
             {
-                return Problem("Entity set 'AppDbContext.Coupons'  is null.");
-            }
-            _context.Coupons.Add(coupon);
-            await _context.SaveChangesAsync();
+                if (_context.Coupons == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Table Not Found";
+                    return NotFound(_response);
+                }
 
-            return CreatedAtAction("GetCoupon", new { id = coupon.CouponId }, coupon);
+                _context.Coupons.Add(coupon);
+                await _context.SaveChangesAsync();
+
+
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.Message = ex.Message;
+                return BadRequest(_response);
+
+            }
+
+            // return CreatedAtAction("GetCoupon", new { id = coupon.CouponId }, coupon);
+            _response.Result = _mapper.Map<CouponDto>(coupon);
+            return Ok(_response);
         }
 
         // DELETE: api/Coupon/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCoupon(int id)
+        public async Task<ActionResult<ResponseDto>> DeleteCoupon(int id)
         {
-            if (_context.Coupons == null)
+            try
             {
-                return NotFound();
+                if (_context.Coupons == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Table Not Found";
+                    return NotFound(_response);
+                }
+
+                var coupon = await _context.Coupons.FindAsync(id);
+
+                if (coupon == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.Message = "Coupon Not Found";
+                    return NotFound(_response);
+                }
+
+                _context.Coupons.Remove(coupon);
+                await _context.SaveChangesAsync();
+
             }
-            var coupon = await _context.Coupons.FindAsync(id);
-            if (coupon == null)
+            catch (Exception ex)
             {
-                return NotFound();
+
+                _response.IsSuccess = false;
+                _response.Message = ex.Message;
+                return BadRequest(_response);
             }
 
-            _context.Coupons.Remove(coupon);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            _response.Message = $"Deleted Successfully coupont {id}";
+            return _response;
         }
 
         private bool CouponExists(int id)
