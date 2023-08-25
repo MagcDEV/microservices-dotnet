@@ -1,12 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using Mango.Web.Models;
 using Mango.Web.Service.IService;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Mango.Web.Controllers
@@ -31,7 +25,7 @@ namespace Mango.Web.Controllers
 
             ResponseDto? response = await _couponService.GetAllCouponAsync();
 
-            if (response != null && response.IsSuccess)
+            if (response?.Result != null && response.IsSuccess)
             {
                 couponList = JsonConvert.DeserializeObject<List<CouponDto>>(Convert.ToString(response.Result));
             }
@@ -41,7 +35,7 @@ namespace Mango.Web.Controllers
 
         [HttpGet]
         [Route("coupon-create")]
-        public async Task<IActionResult> CouponCreate()
+        public IActionResult CouponCreate()
         {
             return View();
         }
@@ -62,14 +56,27 @@ namespace Mango.Web.Controllers
 
         public async Task<IActionResult> CouponDelete(int couponId)
         {
-            ResponseDto? response = await _couponService.DeleteCouponAsync(couponId);
+            ResponseDto? response = await _couponService.GetCouponByIdAsync(couponId);
+
+            if (response?.Result != null && response.IsSuccess)
+            {
+                CouponDto? couponDto = JsonConvert.DeserializeObject<CouponDto>(Convert.ToString(response?.Result));
+                return View(couponDto);
+            }
+
+            return NotFound();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CouponDelete(CouponDto couponDto)
+        {
+            ResponseDto? response = await _couponService.DeleteCouponAsync(couponDto.CouponId);
 
             if (response != null && response.IsSuccess)
             {
                 return RedirectToAction("CouponIndex");
             }
-
-            return RedirectToAction("CouponIndex");
+            return View(couponDto);
         }
 
     }
