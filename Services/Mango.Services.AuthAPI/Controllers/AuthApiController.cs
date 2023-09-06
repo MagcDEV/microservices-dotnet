@@ -1,22 +1,53 @@
+using Mango.Services.AuthAPI.Models.Dto;
+using Mango.Services.AuthAPI.Service.IService;
+using Mango.Services.CouponAPI.Models.Dto;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Mango.Services.AuthAPI.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthApiController : ControllerBase
 {
+    private readonly IAuthService _authService;
+    protected ResponseDto _response;
+
+    public AuthApiController(IAuthService authService)
+    {
+        _authService = authService;
+        _response = new();
+    }
 
     [HttpPost("register")]
-    public IActionResult Register()
+    public async Task<IActionResult> Register([FromBody] RegistrationRequestDto model)
     {
-        return Ok();
+        var errorMesagge = await _authService.RegisterAsync(model);
+        if (!string.IsNullOrEmpty(errorMesagge))
+        {
+            _response.IsSuccess = false;
+            _response.Message = errorMesagge;
+            return BadRequest(_response);
+        }
+        
+        return Ok(_response);
     }
     
     [HttpPost("login")]
-    public IActionResult Login()
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto model)
     {
-        return Ok();
+        var loginResponse = await _authService.LoginAsync(model);
+        if (loginResponse == null)
+        {
+            _response.IsSuccess = false;
+            _response.Message = "Invalid credentials";
+            return BadRequest(_response);
+        }
+
+        _response.IsSuccess = true;
+        _response.Result = loginResponse;
+
+        return Ok(_response);
+
     }
     
     [HttpPost("refresh-token")]
