@@ -66,9 +66,11 @@ public class BaseService : IBaseService
         }
         catch (Exception ex)
         {
-            var dto = new ResponseDto();
-            dto.IsSuccess = false;
-            dto.Message = ex.Message;
+            var dto = new ResponseDto
+            {
+                IsSuccess = false,
+                Message = ex.Message
+            };
             return dto;
         }
 
