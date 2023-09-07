@@ -49,6 +49,22 @@ public class AuthApiController : ControllerBase
         return Ok(_response);
 
     }
+
+    [HttpPost("AssingRole")]
+    public async Task<IActionResult> AssingRole([FromBody] RegistrationRequestDto model)
+    {
+        var assingRoleSuccessfull = await _authService.AssingRole(model.Email,  model.Role.ToUpper());
+        if (!assingRoleSuccessfull)
+        {
+            _response.IsSuccess = false;
+            _response.Message = "Error while assinging role";
+            return BadRequest(_response);
+        }
+
+        _response.IsSuccess = true;
+
+        return Ok(_response);
+    }
     
     [HttpPost("refresh-token")]
     public IActionResult RefreshToken()

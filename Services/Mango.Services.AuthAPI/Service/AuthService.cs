@@ -10,15 +10,37 @@ public class AuthService : IAuthService
 {
     private readonly AppDbContext _db;
     private readonly UserManager<AppUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IJwtTokeGenerator _jwtTokenGenerator;
 
     public AuthService(AppDbContext appContext,
                        UserManager<AppUser> userManager,
+                       RoleManager<IdentityRole> roleManager,
                        IJwtTokeGenerator jwtTokenGenerator)
     {
         _db = appContext;
         _userManager = userManager;
-         _jwtTokenGenerator = jwtTokenGenerator;
+        _roleManager = roleManager;
+        _jwtTokenGenerator = jwtTokenGenerator;
+    }
+
+    public async Task<bool> AssingRole(string email, string roleName)
+    {
+        var user = _db.AppUsers.Where(u => u.Email.ToLower() == email.ToLower()).FirstOrDefault();
+        if (user != null)
+        {
+            if (!_roleManager.RoleExistsAsync(roleName).Result)
+            {
+                // create role
+                _roleManager.CreateAsync(new IdentityRole(roleName)).GetAwaiter().GetResult();
+            }
+
+            await _userManager.AddToRoleAsync(user, roleName);
+            return true;
+        }
+
+        return false;
+
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto loginRequestDto)
@@ -34,8 +56,7 @@ public class AuthService : IAuthService
                 Token = "",
             };
         }
-        // if user was found generate JWT token
-        // var token = await _userManager.GenerateUserTokenAsync(user, "token", "another" );
+        
         UserDto userDto = new()
         {
             Email = user.Email,
