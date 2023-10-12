@@ -3,6 +3,7 @@ using Mango.Web.Service.IService;
 using Mango.Web.Utility;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.CodeAnalysis.Options;
 using Newtonsoft.Json;
 
 namespace Mango.Web.Controllers
@@ -27,11 +28,12 @@ namespace Mango.Web.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginRequestDto loginRequestDto)
         {
-            ResponseDto responseDto = await _authService.LoginAsync(loginRequestDto);
+            ResponseDto? responseDto = await _authService.LoginAsync(loginRequestDto);
             if (responseDto != null && responseDto.IsSuccess)
             {
-                LoginResponseDto loginResponseDto = 
+                LoginResponseDto? loginResponseDto = 
                     JsonConvert.DeserializeObject<LoginResponseDto>(Convert.ToString(responseDto.Result));
+
                 TempData["Success"] = "Login Successful";
                 return RedirectToAction("Index", "Home");
             }
@@ -57,7 +59,7 @@ namespace Mango.Web.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register(RegistrationRequestDto registrationRequestDto)
         {
-            ResponseDto result = await _authService.RegisterAsync(registrationRequestDto);
+            ResponseDto? result = await _authService.RegisterAsync(registrationRequestDto);
             ResponseDto assingRole;
 
             if (result != null && result.IsSuccess)
@@ -73,8 +75,16 @@ namespace Mango.Web.Controllers
                 {
                     TempData["Success"] = "Registration Successful";
                     return RedirectToAction("Login", "Auth");
+                } else
+                {
+                    TempData["Error"] = "Registration Failed";
+                    return RedirectToAction("Register", "Auth");                    
+                    
                 }
 
+            } else
+            {
+                TempData["Error"] = result?.Message;
             }
 
             var roleList = new List<SelectListItem>()

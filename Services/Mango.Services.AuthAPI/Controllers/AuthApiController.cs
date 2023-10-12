@@ -28,6 +28,8 @@ public class AuthApiController : ControllerBase
             _response.Message = errorMesagge;
             return BadRequest(_response);
         }
+
+        Console.WriteLine("Registered successfully");
         
         return Ok(_response);
     }
@@ -36,7 +38,7 @@ public class AuthApiController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequestDto model)
     {
         var loginResponse = await _authService.LoginAsync(model);
-        if (loginResponse == null)
+        if (loginResponse.User == null)
         {
             _response.IsSuccess = false;
             _response.Message = "Invalid credentials";
